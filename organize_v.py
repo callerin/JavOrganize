@@ -4,6 +4,7 @@ import os
 import logging
 import xml.etree.ElementTree as ET
 from shutil import move
+from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
@@ -19,8 +20,8 @@ class nfoTree:
 		self.actor = self.get_actor()
 		self.title = self.get_title()
 		self.stitle = self.get_title('title')
-
 		self.apple = []
+		logging.debug(f'Get {self.num}')
 
 	def val_leaves(self, node):
 		# 判断是否为叶子节点
@@ -83,7 +84,7 @@ class nfoTree:
 		except Exception as e:
 			logging.error(e)
 
-		expr = r'(\d\d\d)?[a-zA-Z]{0,8}-\d{3}'
+		expr = r'(\d\d\d)?[a-zA-Z]{0,8}\d{0,5}-\d{3}'
 		exp = re.compile(expr)
 		num = exp.search(title).group()
 
@@ -95,27 +96,12 @@ class nfoTree:
 		return self.apple
 
 
-def test():
-	f_name = r'D:\Download\QQDownload\Single\hhd800.com@CJOD-366.nfo'
-	f_name2 = r'D:\Download\QQDownload\Named\時田亜美\FSDSS-472 時田亜美.nfo'
-	mytree = nfoTree(f_name)
-	data = mytree.get_apple()
-	actor = mytree.get_actor()
-	title = mytree.get_title()
-	print(title)
-	# print(data)
-	print(actor)
-	print(mytree.num)
-
-
 class movie:
 	def __init__(self, f_name: dict):
 		self.nfo = nfoTree(f_name['fname'])
-		print(self.nfo.num)
 		self.name = self.get_name(f_name)
 		self.files = self.get_file(f_name)
-
-		pass
+		self.status = self.check(del_file=True)
 
 	def get_file(self, file):
 		flist = []
@@ -140,6 +126,24 @@ class movie:
 		name = os.path.splitext(file_name['name'])[0]
 		return name
 
+	def check(self, del_file):
+		# 判断是否缺少视频文件，
+		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi')
+		flag = False
+
+		for file in self.files:
+			if file['name'].endswith(file_end):
+				flag = True
+				break
+
+		if del_file and not flag:
+			for file in self.files:
+				# send2trash(file['fname'])
+				name = file['name']
+				logging.info(f'{name} is send2trash')
+
+		return flag
+
 
 def organiz_file(origin: str, destination: str):
 
@@ -158,7 +162,8 @@ def organiz_file(origin: str, destination: str):
 
 	for nfo in nfo_list:
 		temp = movie(nfo)
-		movies.append(temp)
+		if temp.status:
+			movies.append(temp)
 
 	for data in movies:
 		name = data.name
@@ -175,7 +180,7 @@ def organiz_file(origin: str, destination: str):
 		path_actor = os.path.join(destination, actor)
 		# makedir with actor name
 		if not os.path.exists(path_actor):
-			# os.mkdir(path_actor)
+			os.mkdir(path_actor)
 			logging.info(f'mkdir {actor}')
 
 		for file in files:
@@ -184,7 +189,7 @@ def organiz_file(origin: str, destination: str):
 			dfile = sname.replace(name, new_name)
 			dest_file = os.path.join(path_actor, dfile)
 			try:
-				# move(fname, dest_file)
+				move(fname, dest_file)
 				logging.info(f'{sname} is moved to {actor}')
 			except Exception as e:
 				logging.error(e)
@@ -193,6 +198,5 @@ def organiz_file(origin: str, destination: str):
 
 
 if __name__ == '__main__':
-	a = organiz_file(r'D:\Download\QQDownload\Single',
-                  r'D:\Download\QQDownload\Named')
-	print(a)
+	organiz_file(r'D:\Download\QQDownload\Single',
+              r'D:\Download\QQDownload\Named')
