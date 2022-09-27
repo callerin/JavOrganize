@@ -84,10 +84,13 @@ class nfoTree:
 		except Exception as e:
 			logging.error(e)
 
-		expr = r'(\d\d\d)?[a-zA-Z]{0,8}\d{0,5}-\d{3}'
+		expr = r'(\d\d\d)?[a-zA-Z]{0,8}\d{0,5}-\d{1,3}'
 		exp = re.compile(expr)
-		num = exp.search(title).group()
-
+		try:
+			num = exp.search(title).group()
+		except Exception as e:
+			num = None
+			logging.error(f'{title} get num wrong {e}')
 		return num
 
 	def get_apple(self):
@@ -105,7 +108,6 @@ class movie:
 
 	def get_file(self, file):
 		flist = []
-		flist.append(file)
 		try:
 			path = file['path']
 			name = self.name
@@ -138,7 +140,7 @@ class movie:
 
 		if del_file and not flag:
 			for file in self.files:
-				# send2trash(file['fname'])
+				send2trash(file['fname'])
 				name = file['name']
 				logging.info(f'{name} is send2trash')
 
@@ -172,11 +174,21 @@ def organiz_file(origin: str, destination: str):
 		num_m = data.nfo.num
 		title = data.nfo.title
 
+		str_ignore = ('FC2', 'fc2')
+
+		if any(arg in name for arg in str_ignore):
+			logging.info(f'{name} ignored')
+			continue
+
 		if actor is None:
 			logging.warning(f'{name} missing actor')
 			continue
 
-		new_name = num_m + ' ' + title + actor
+		if actor in title:
+			new_name = num_m + ' ' + title
+		else:
+			new_name = num_m + ' ' + title + actor
+
 		path_actor = os.path.join(destination, actor)
 		# makedir with actor name
 		if not os.path.exists(path_actor):
@@ -198,5 +210,7 @@ def organiz_file(origin: str, destination: str):
 
 
 if __name__ == '__main__':
-	organiz_file(r'D:\Download\QQDownload\Single',
-              r'D:\Download\QQDownload\Named')
+	file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
+	file_dest = r'D:\Download\QQDownload\Named'	  # 移动文件目标位置
+
+	organiz_file(file_path, file_dest)
