@@ -105,6 +105,7 @@ class movie:
         self.name = self.get_name(f_name)
         self.files = self.get_file(f_name)
         self.status = self.check(del_file=True)
+        self.num = self.nfo.num
 
     def get_file(self, file):
         flist = []
@@ -119,13 +120,18 @@ class movie:
                         temp['name'] = file
                         temp['fname'] = file_src
                         flist.append(temp)
-
         except Exception as e:
             logging.error(f'Get file error{e}')
+
         return flist
 
     def get_name(self, file_name):
         name = os.path.splitext(file_name['name'])[0]
+        if 'cd1' in name or 'CD1' in name:
+            name = name.replace('CD', 'cd')
+            tmp = name.split('-cd1')
+            name = tmp[0]
+
         return name
 
     def check(self, del_file):
@@ -189,10 +195,15 @@ def organiz_file(origin: str, destination: str):
         else:
             new_name = num_m + ' ' + title + actor
 
-        path_actor = os.path.join(destination, actor)
+        full_name = files[0]['fname']
+        if 'cd' in full_name or 'CD' in full_name:
+            tmp = os.path.join(destination, actor)
+            path_actor = os.path.join(tmp, num_m)
+        else:
+            path_actor = os.path.join(destination, actor)
         # makedir with actor name
         if not os.path.exists(path_actor):
-            os.mkdir(path_actor)
+            os.makedirs(path_actor)
             logging.info(f'mkdir {actor}')
 
         for file in files:
