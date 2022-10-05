@@ -2,13 +2,14 @@
 import re
 import os
 import logging
+from unittest import result
 import xml.etree.ElementTree as ET
 from shutil import move
 from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(filename='log.txt', level=logging.DEBUG,
+logging.basicConfig(filename='log.txt', level=logging.INFO,
                     format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
@@ -153,6 +154,23 @@ class movie:
         return flag
 
 
+def norm_name(fnam: str):
+    if fnam is None or not isinstance(fnam, str):
+        return None
+
+    ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>')
+    ch_replace = ' '
+    max_len = 200       # windows 250
+
+    result = fnam
+    for ch in ch_forbid:
+        result = result.replace(ch, ch_replace)
+    if len(result) > max_len:
+        result = result[0:max_len]
+        logging.warning(f'file name is been cut:{result}')
+
+    return result
+
 def organiz_file(origin: str, destination: str):
 
     nfo_list = []
@@ -173,6 +191,9 @@ def organiz_file(origin: str, destination: str):
         if temp.status:
             movies.append(temp)
 
+    if len(movies) == 0:
+        return False
+
     for data in movies:
         name = data.name
         files = data.files
@@ -190,10 +211,15 @@ def organiz_file(origin: str, destination: str):
             logging.warning(f'{name} missing actor')
             continue
 
+        if title is None:
+            logging.warning(f'{name} missing title')
+            continue
+
         if actor in title:
             new_name = num_m + ' ' + title
         else:
             new_name = num_m + ' ' + title + actor
+        new_name = norm_name(new_name)
 
         full_name = files[0]['fname']
         if 'cd' in full_name or 'CD' in full_name:
