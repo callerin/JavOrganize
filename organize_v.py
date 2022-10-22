@@ -160,7 +160,7 @@ def norm_name(fnam: str):
 
     ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>')
     ch_replace = ' '
-    max_len = 200       # windows 250
+    max_len = 160       # windows max 250
 
     result = fnam
     for ch in ch_forbid:
@@ -171,10 +171,13 @@ def norm_name(fnam: str):
 
     return result
 
+
 def organiz_file(origin: str, destination: str):
 
     nfo_list = []
     movies = []
+
+    count = {'file': 0, 'movie': 0}
 
     for root, dirs, files in os.walk(origin):
         for file in files:
@@ -240,14 +243,19 @@ def organiz_file(origin: str, destination: str):
             try:
                 move(fname, dest_file)
                 logging.info(f'{sname} is moved to {actor}')
+                count['file'] = count['file'] + 1
             except Exception as e:
                 logging.error(f'Move file error{e}')
 
-    return nfo_list
+        count['movie'] = count['movie'] + 1
+
+    return count
 
 
 if __name__ == '__main__':
     file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
     file_dest = r'D:\Download\QQDownload\Named'	  # 移动文件目标位置
 
-    organiz_file(file_path, file_dest)
+    count = organiz_file(file_path, file_dest)
+    print(count)
+    logging.info('Complet:{}'.format(count['movie']))
