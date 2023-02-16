@@ -68,6 +68,7 @@ class nfoTree:
             return actor_name
         except Exception as e:
             logging.error(f'{self.num} actor is null')
+            print(f'{self.num} actor is null')
 
     def get_title(self, stag='originaltitle'):
         title_node = self.root.findall(stag)
@@ -160,7 +161,7 @@ def norm_name(fnam: str):
 
     ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>')
     ch_replace = ' '
-    max_len = 160       # windows max 250
+    max_len = 120       # windows max 250
 
     result = fnam
     for ch in ch_forbid:
@@ -215,6 +216,10 @@ def organiz_file(origin: str, destination: str):
             continue
 
         if title is None:
+            logging.warning(f'{name} missing title')
+            continue
+
+        if num_m is None:
             logging.warning(f'{name} missing title')
             continue
 
