@@ -130,7 +130,8 @@ class movie:
     def get_name(self, file_name):
         name = os.path.splitext(file_name['name'])[0]
         if 'cd1' in name or 'CD1' in name:
-            name = name.replace('CD', 'cd')
+            name = name.replace('CD1', 'cd1')
+            name = name.replace('.cd', '-cd')
             tmp = name.split('-cd1')
             name = tmp[0]
 
@@ -258,8 +259,14 @@ def organiz_file(origin: str, destination: str):
 
 
 if __name__ == '__main__':
-    file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
-    file_dest = r'D:\Download\QQDownload\Named'	  # 移动文件目标位置
+
+    Disk = 0
+    if Disk == 1:
+        file_path = r'E:\Download\QQDownload\Single'  # 待处理文件目录
+        file_dest = r'E:\Video\Secret\Named'	  # 移动文件目标位置
+    else:
+        file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
+        file_dest = r'D:\Download\QQDownload\Named'	  # 移动文件目标位置
 
     count = organiz_file(file_path, file_dest)
     print(count)
