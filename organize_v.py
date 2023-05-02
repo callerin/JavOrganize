@@ -188,6 +188,9 @@ def rename_single_dir(file_path: str):
 
 		for file in files:
 			if name_movie not in file:
+				if file == 'log.txt':
+					continue
+
 				fname = os.path.join(root, file)
 				temp = name_movie + '-' + file
 				new_name = os.path.join(root, temp)
@@ -291,9 +294,9 @@ if __name__ == '__main__':
 	elif len(sys.argv) == 3:
 		file_path = sys.argv[1]
 		file_dest = sys.argv[2]
-	else:
-		file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
-		file_dest = r'D:\Download\QQDownload\Named'  # 移动文件目标位置
+	# else:
+	# 	file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
+	# 	file_dest = r'D:\Download\QQDownload\Named'  # 移动文件目标位置
 
 	rename_single_dir(file_path)
 	count = organiz_file(file_path, file_dest)
