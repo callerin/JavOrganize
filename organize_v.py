@@ -9,11 +9,13 @@ from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(filename='log.txt', level=logging.INFO,
+logging.basicConfig(filename='log.txt',
+                    level=logging.INFO,
                     format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
 class nfoTree:
+
 	def __init__(self, nfo_file):
 		self.tree = ET.parse(nfo_file)
 		self.root = self.tree.getroot()
@@ -50,8 +52,8 @@ class nfoTree:
 			basket = []
 			for child in children:
 				if self.val_leaves(child):
-					# 控制得到是果实，或者枝头的其他属性
-					if child.text == None:
+					# 控制获得果实，或者枝头的其他属性
+					if child.text is None:
 						basket.append(child.attrib)
 					else:
 						basket.append(child.text)
@@ -89,7 +91,7 @@ class nfoTree:
 		expr = r'(\d\d\d)?[a-zA-Z]{0,8}\d{0,5}-\d{1,3}'
 		exp = re.compile(expr)
 		try:
-			num = exp.search(title).group()
+			num = exp.search(title).group()  # type: ignore
 		except Exception as e:
 			num = None
 			logging.error(f'{title} get num wrong {e}')
@@ -102,6 +104,7 @@ class nfoTree:
 
 
 class movie:
+
 	def __init__(self, f_name: dict):
 		self.nfo = nfoTree(f_name['fname'])
 		self.name = self.get_name(f_name)
@@ -164,14 +167,14 @@ def norm_name(fnam: str):
 	ch_replace = ' '
 	max_len = 100  # windows max 250
 
-	result = fnam
+	new_name = fnam
 	for ch in ch_forbid:
-		result = result.replace(ch, ch_replace)
-	if len(result) > max_len:
-		result = result[0:max_len]
-		logging.warning(f'file name is been cut:{result}')
+		new_name = new_name.replace(ch, ch_replace)
+	if len(new_name) > max_len:
+		new_name = new_name[0:max_len]
+		logging.warning(f'file name is been cut:{new_name}')
 
-	return result
+	return new_name
 
 
 def rename_single_dir(file_path: str):
@@ -180,11 +183,16 @@ def rename_single_dir(file_path: str):
 		logging.error(f'dir {file_path} not exist')
 		return False
 
+	flag_nfo = True
 	for root, dirs, files in os.walk(file_path):
 		for file in files:
 			if file.endswith('nfo'):
 				name_movie = os.path.splitext(file)[0]
+				flag_nfo = False
 				break
+
+		if flag_nfo:
+			return
 
 		for file in files:
 			if name_movie not in file:
@@ -192,7 +200,7 @@ def rename_single_dir(file_path: str):
 					continue
 
 				fname = os.path.join(root, file)
-				temp = name_movie + '-' + file
+				temp = name_movie + '-' + file  # type: ignore
 				new_name = os.path.join(root, temp)
 				os.rename(fname, new_name)
 				logging.info(f'{fname} is renamed to {temp}')
@@ -275,11 +283,11 @@ def organiz_file(origin: str, destination: str):
 			try:
 				move(fname, dest_file)
 				logging.info(f'{sname} is moved to {actor}')
-				count['file'] = count['file'] + 1
+				count['file'] += 1
 			except Exception as e:
 				logging.error(f'Move file error{e}')
 
-		count['movie'] = count['movie'] + 1
+		count['movie'] += 1
 
 	return count
 
@@ -288,8 +296,6 @@ if __name__ == '__main__':
 	file_path = './'
 	file_dest = './'
 	if len(sys.argv) == 2:
-		# if os.path.isdir(sys.argv[1]):
-		file_path = sys.argv[1]
 		file_dest = sys.argv[1]
 	elif len(sys.argv) == 3:
 		file_path = sys.argv[1]
