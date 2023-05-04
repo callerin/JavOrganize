@@ -10,8 +10,8 @@ from send2trash import send2trash
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
 logging.basicConfig(filename='log.txt',
-                    level=logging.INFO,
-                    format=" %(asctime)s - %(levelname)s - %(message)s")
+					level=logging.INFO,
+					format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
 class nfoTree:
