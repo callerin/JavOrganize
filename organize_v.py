@@ -10,8 +10,8 @@ from send2trash import send2trash
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
 logging.basicConfig(filename='log.txt',
-					level=logging.INFO,
-					format=" %(asctime)s - %(levelname)s - %(message)s")
+                    level=logging.INFO,
+                    format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
 class nfoTree:
@@ -192,7 +192,7 @@ def rename_single_dir(file_path: str):
 				break
 
 		if flag_nfo:
-			return
+			continue
 
 		for file in files:
 			if name_movie not in file:
@@ -296,6 +296,7 @@ if __name__ == '__main__':
 	file_path = './'
 	file_dest = './'
 	if len(sys.argv) == 2:
+		file_path = sys.argv[1]
 		file_dest = sys.argv[1]
 	elif len(sys.argv) == 3:
 		file_path = sys.argv[1]
