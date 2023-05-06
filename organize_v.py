@@ -9,9 +9,7 @@ from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(filename='log.txt',
-                    level=logging.INFO,
-                    format=" %(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO,format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
 class nfoTree:
@@ -263,6 +261,9 @@ def organiz_file(origin: str, destination: str):
 		else:
 			new_name = num_m + ' ' + title + actor
 		new_name = norm_name(new_name)
+
+		if '-4k' or '-4K' in name:
+			new_name = new_name + '-4k'
 
 		full_name = files[0]['fname']
 		if 'cd' in full_name or 'CD' in full_name:
