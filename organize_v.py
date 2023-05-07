@@ -9,7 +9,7 @@ from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(level=logging.INFO,format=" %(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
 class nfoTree:
@@ -86,7 +86,7 @@ class nfoTree:
 		except Exception as e:
 			logging.error(f'Get stitle error{e}')
 
-		expr = r'(\d\d\d)?[a-zA-Z]{0,8}\d{0,5}-\d{1,3}'
+		expr = r'(\d\d\d)?[a-zA-Z]{0,8}\d{0,5}-\d{1,7}'
 		exp = re.compile(expr)
 		try:
 			num = exp.search(title).group()  # type: ignore
@@ -186,6 +186,8 @@ def rename_single_dir(file_path: str):
 		for file in files:
 			if file.endswith('nfo'):
 				name_movie = os.path.splitext(file)[0]
+				if '-cd' in name_movie or '-CD' in name_movie:
+					name_movie = name_movie[0:-4]
 				flag_nfo = False
 				break
 
@@ -201,7 +203,7 @@ def rename_single_dir(file_path: str):
 				temp = name_movie + '-' + file  # type: ignore
 				new_name = os.path.join(root, temp)
 				os.rename(fname, new_name)
-				logging.info(f'{fname} is renamed to {temp}')
+				logging.info(f'{file} is renamed to {temp}')
 
 
 def organiz_file(origin: str, destination: str):
@@ -238,11 +240,11 @@ def organiz_file(origin: str, destination: str):
 		num_m = data.nfo.num
 		title = data.nfo.title
 
-		str_ignore = ('FC2', 'fc2')
+		str_ignore = ()
 
 		if any(arg in name for arg in str_ignore):
-			logging.info(f'{name} ignored')
-			continue
+		 	logging.info(f'{name} ignored')
+		 	continue
 
 		if actor is None:
 			logging.warning(f'{name} missing actor')
@@ -262,7 +264,7 @@ def organiz_file(origin: str, destination: str):
 			new_name = num_m + ' ' + title + actor
 		new_name = norm_name(new_name)
 
-		if '-4k' or '-4K' in name:
+		if '-4k' in name or '-4K' in name:
 			new_name = new_name + '-4k'
 
 		full_name = files[0]['fname']
