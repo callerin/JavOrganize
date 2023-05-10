@@ -6,14 +6,15 @@
 
 > ### 使用方法
 >
->   修改organize_v.py中目录名，直接运行，根目录生成运行log。
+> 使用命令行直接运行脚本文件，命令格式 python   ./organize_v.py   arg1 arg2  
+>
+> <u>说明：organize_v.py使用绝对路径或者加入path, arg1 arg2 为可选参数，分别为待处理文件夹路径，移动文件目录，无输入参数时默认为终端当前路径</u>
 >
 > ```python
-> if __name__ == '__main__':
->     file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
->     file_dest = r'D:\Download\QQDownload\Named'   # 移动文件目标位置
-> 
->     organiz_file(file_path, file_dest)
+>  
+> python /organize_v.py file_path file_dest
+> or
+> python /organize_v.py file_path
 > 
 > ```
 >

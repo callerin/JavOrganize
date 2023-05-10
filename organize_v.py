@@ -9,7 +9,8 @@ from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(level=logging.INFO, format=" %(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO,
+                    format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
 class nfoTree:
@@ -136,25 +137,27 @@ class movie:
 			tmp = name.split('-cd1')
 			name = tmp[0]
 
+		str_keep = ('-4k', '-1080p', '-C')
+		for arg in str_keep:
+			name = name.replace(arg, '')
 		return name
 
 	def check(self, del_file):
 		# 判断是否缺少视频文件
 		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi')
-		flag = False
+		count = 0
 
 		for file in self.files:
 			if file['name'].endswith(file_end):
-				flag = True
-				break
+				count = count + 1
 
-		if del_file and not flag:
+		if del_file and count == 0:
 			for file in self.files:
 				send2trash(file['fname'])
 				name = file['name']
 				logging.info(f'{name} is send2trash')
 
-		return flag
+		return count
 
 
 def norm_name(fnam: str):
@@ -175,35 +178,56 @@ def norm_name(fnam: str):
 	return new_name
 
 
-def rename_single_dir(file_path: str):
+def rename_single_dir(file_path: str, str_ig):
 	# 单独文件夹影片重命名，适配 organiz_file()函数识别影片文件
 	if not os.path.exists(file_path):
 		logging.error(f'dir {file_path} not exist')
 		return False
 
+	file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi')
+
 	flag_nfo = True
+	name_movie = ''
 	for root, dirs, files in os.walk(file_path):
+		temp_nfo = {}
 		for file in files:
-			if file.endswith('nfo'):
+			if file.endswith('.nfo'):
 				name_movie = os.path.splitext(file)[0]
 				if '-cd' in name_movie or '-CD' in name_movie:
 					name_movie = name_movie[0:-4]
+				for arg in str_ig:
+					name_movie = name_movie.replace(arg, '')
 				flag_nfo = False
-				break
 
+				temp_nfo = {}
+				file_src = os.path.join(root, file)
+				temp_nfo['name'] = file
+				temp_nfo['path'] = root
+				temp_nfo['fname'] = file_src
+				break
 		if flag_nfo:
+			continue
+		if len(temp_nfo) < 1:
+			continue
+		temp_movie = movie(temp_nfo)
+		if temp_movie.status != 1:
 			continue
 
 		for file in files:
-			if name_movie not in file:
+			temp1 = file.upper()
+			temp2 = name_movie.upper()
+			if not temp2 in temp1:
 				if file == 'log.txt':
 					continue
 
 				fname = os.path.join(root, file)
 				temp = name_movie + '-' + file  # type: ignore
 				new_name = os.path.join(root, temp)
-				os.rename(fname, new_name)
-				logging.info(f'{file} is renamed to {temp}')
+				try:
+					os.rename(fname, new_name)
+					logging.info(f'{file} is renamed to {temp}')
+				except Exception as e:
+					logging.error(f'{file} renamed error {e}')
 
 
 def organiz_file(origin: str, destination: str):
@@ -215,9 +239,12 @@ def organiz_file(origin: str, destination: str):
 	nfo_list = []
 	movies = []
 
+	str_keep = ('-4k', '-1080p', '-C')
+	rename_single_dir(origin, str_keep)
+
 	for root, dirs, files in os.walk(origin):
 		for file in files:
-			if file.endswith('nfo'):
+			if file.endswith('.nfo'):
 				temp = {}
 				file_src = os.path.join(root, file)
 				temp['name'] = file
@@ -243,8 +270,8 @@ def organiz_file(origin: str, destination: str):
 		str_ignore = ()
 
 		if any(arg in name for arg in str_ignore):
-		 	logging.info(f'{name} ignored')
-		 	continue
+			logging.info(f'{name} ignored')
+			continue
 
 		if actor is None:
 			logging.warning(f'{name} missing actor')
@@ -263,16 +290,16 @@ def organiz_file(origin: str, destination: str):
 		else:
 			new_name = num_m + ' ' + title + actor
 		new_name = norm_name(new_name)
-
-		if '-4k' in name or '-4K' in name:
-			new_name = new_name + '-4k'
+		if data.status > 1:
+			new_name = num_m
 
 		full_name = files[0]['fname']
-		if 'cd' in full_name or 'CD' in full_name:
+		if 'cd' in full_name or 'CD' in full_name or data.status > 1:
 			tmp = os.path.join(destination, actor)
 			path_actor = os.path.join(tmp, num_m)
 		else:
 			path_actor = os.path.join(destination, actor)
+
 		# makedir with actor name
 		if not os.path.exists(path_actor):
 			os.makedirs(path_actor)
@@ -308,7 +335,6 @@ if __name__ == '__main__':
 	# 	file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
 	# 	file_dest = r'D:\Download\QQDownload\Named'  # 移动文件目标位置
 
-	rename_single_dir(file_path)
 	count = organiz_file(file_path, file_dest)
 	print(count)
 	logging.info('Complet:{}'.format(count['movie']))
