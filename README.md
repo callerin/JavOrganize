@@ -6,15 +6,13 @@
 
 > ### 使用方法
 >
-> 使用命令行直接运行脚本文件，命令格式 python   ./organize_v.py   arg1 arg2  
+> 使用命令行直接运行脚本文件，命令格式 python ./organize_v.py -o src_dir -d dest_dir
 >
-> <u>说明：organize_v.py使用绝对路径或者加入path, arg1 arg2 为可选参数，分别为待处理文件夹路径，移动文件目录，无输入参数时默认为终端当前路径</u>
+> <u>说明：organize_v.py使用绝对路径或者加入path, src_dir dest_dir 为可选参数，分别为待处理文件夹路径，移动文件目录，无输入参数时默认为终端当前路径</u>
 >
 > ```python
 >  
-> python /organize_v.py file_path file_dest
-> or
-> python /organize_v.py file_path
+> python organize_v.py -o src_dir -d dest_dir
 > 
 > ```
 >
@@ -24,7 +22,7 @@
 >
 > 例子：hhd800.com@HMN-189.mp4 --> HMN-189 ぼっち×おじ散歩 アプリで出会ったクラスでぼっちの子の誘惑に負けた中年オヤジは ラブホテルで何度も、何度も、中出しセックスしてしまった… 由良かな.mp4
 >
-> 参考 Javscraper  JavOrganize，由于改用javtube刮削影片后，JavOrganize对其刮削结果无作用，所以有了这个东西。
+> 参考 Javscraper JavOrganize，由于改用javtube刮削影片后，JavOrganize对其刮削结果无作用，所以有了这个东西。
 
 
 

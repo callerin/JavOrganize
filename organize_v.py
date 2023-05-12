@@ -2,6 +2,7 @@ import re
 import os
 import sys
 import logging
+import argparse
 from unittest import result
 import xml.etree.ElementTree as ET
 from shutil import move
@@ -313,6 +314,7 @@ def organiz_file(origin: str, destination: str):
 			try:
 				move(fname, dest_file)
 				logging.info(f'{sname} is moved to {actor}')
+				logging.info(f'Renamed to {dfile}')
 				count['file'] += 1
 			except Exception as e:
 				logging.error(f'Move file error{e}')
@@ -322,19 +324,24 @@ def organiz_file(origin: str, destination: str):
 	return count
 
 
-if __name__ == '__main__':
-	file_path = './'
-	file_dest = './'
-	if len(sys.argv) == 2:
-		file_path = sys.argv[1]
-		file_dest = sys.argv[1]
-	elif len(sys.argv) == 3:
-		file_path = sys.argv[1]
-		file_dest = sys.argv[2]
-	# else:
-	# 	file_path = r'D:\Download\QQDownload\Single'  # 待处理文件目录
-	# 	file_dest = r'D:\Download\QQDownload\Named'  # 移动文件目标位置
+def main():
+	parser = argparse.ArgumentParser(description='Organize video files based on Emby-generated NFO files.')
+	parser.add_argument('-o', '--src_dir', type=str, default='./', help='Source directory containing NFO and Movie files.')
+	parser.add_argument('-d', '--dest_dir', type=str, default='./', help='Destination directory where the organized files will be stored.')
 
-	count = organiz_file(file_path, file_dest)
+	args = parser.parse_args()
+
+	src_dir = os.path.abspath(args.src_dir)
+	dest_dir = os.path.abspath(args.dest_dir)
+
+	if not os.path.exists(src_dir):
+		print('Source directory does not exist.')
+		sys.exit(1)
+
+	count = organiz_file(src_dir, dest_dir)
 	print(count)
 	logging.info('Complet:{}'.format(count['movie']))
+
+
+if __name__ == '__main__':
+	main()
