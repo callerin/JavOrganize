@@ -190,6 +190,7 @@ def rename_single_dir(file_path: str, str_ig):
 	flag_nfo = True
 	name_movie = ''
 	for root, dirs, files in os.walk(file_path):
+		nfo_list = []
 		temp_nfo = {}
 		for file in files:
 			if file.endswith('.nfo'):
@@ -205,12 +206,13 @@ def rename_single_dir(file_path: str, str_ig):
 				temp_nfo['name'] = file
 				temp_nfo['path'] = root
 				temp_nfo['fname'] = file_src
-				break
+				nfo_list.append(temp_nfo)
+
 		if flag_nfo:
 			continue
-		if len(temp_nfo) != 1:
+		if len(nfo_list) != 1:
 			continue
-		temp_movie = movie(temp_nfo)
+		temp_movie = movie(nfo_list[0])
 		if temp_movie.status != 1:
 			continue
 
