@@ -138,7 +138,7 @@ class movie:
 			tmp = name.split('-cd1')
 			name = tmp[0]
 
-		str_keep = ('-4k', '-1080p', '-C')
+		str_keep = ('-4k.', '-1080p.', '-C.')
 		for arg in str_keep:
 			name = name.replace(arg, '')
 		return name
@@ -185,7 +185,7 @@ def rename_single_dir(file_path: str, str_ig):
 		logging.error(f'dir {file_path} not exist')
 		return False
 
-	file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi')
+	file_end = ('.mp4', '.wmv', '.mov', '.mkv', '.avi', '.jpg', '.png', '.ass', '.srt', '.sub')
 
 	flag_nfo = True
 	name_movie = ''
@@ -208,7 +208,7 @@ def rename_single_dir(file_path: str, str_ig):
 				break
 		if flag_nfo:
 			continue
-		if len(temp_nfo) < 1:
+		if len(temp_nfo) != 1:
 			continue
 		temp_movie = movie(temp_nfo)
 		if temp_movie.status != 1:
@@ -219,6 +219,8 @@ def rename_single_dir(file_path: str, str_ig):
 			temp2 = name_movie.upper()
 			if not temp2 in temp1:
 				if file == 'log.txt':
+					continue
+				if not any(file.endswith(arg) for arg in file_end):
 					continue
 
 				fname = os.path.join(root, file)
