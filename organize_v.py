@@ -23,6 +23,7 @@ class nfoTree:
 		self.actor = self.get_actor()
 		self.title = self.get_title()
 		self.stitle = self.get_title('title')
+		self.nfo_name = self.get_nfo(nfo_file)
 		self.apple = []
 		logging.debug(f'Get {self.num}')
 
@@ -102,6 +103,11 @@ class nfoTree:
 		self.grow_apple(self.root)
 		return self.apple
 
+	def get_nfo(self, name):
+		nfo_name = os.path.split(name)
+
+		return nfo_name[1]
+
 
 class movie:
 
@@ -111,6 +117,7 @@ class movie:
 		self.files = self.get_file(f_name)
 		self.status = self.check(del_file=True)
 		self.num = self.nfo.num
+		self.type = self.get_type()
 
 	def get_file(self, file):
 		flist = []
@@ -159,6 +166,16 @@ class movie:
 				logging.info(f'{name} is send2trash')
 
 		return count
+
+	def get_type(self):
+		tag = []
+		str_keep = ('-4k', '-1080p', '-C', '-4K')
+		name = self.name
+		for arg in str_keep:
+			if arg in name:
+				tag.append(arg)
+				break
+		return tag
 
 
 def norm_name(fnam: str):
@@ -226,7 +243,7 @@ def rename_single_dir(file_path: str, str_ig):
 					continue
 
 				fname = os.path.join(root, file)
-				temp = name_movie + '-' + file  # type: ignore
+				temp = temp_movie.name + '-' + file  # type: ignore
 				new_name = os.path.join(root, temp)
 				try:
 					os.rename(fname, new_name)
@@ -244,7 +261,7 @@ def organiz_file(origin: str, destination: str):
 	nfo_list = []
 	movies = []
 
-	str_keep = ('-4k', '-1080p', '-C')
+	str_keep = ('-4k', '-1080p', '-C', '-4K')
 	rename_single_dir(origin, str_keep)
 
 	for root, dirs, files in os.walk(origin):
@@ -294,6 +311,10 @@ def organiz_file(origin: str, destination: str):
 			new_name = num_m + ' ' + title
 		else:
 			new_name = num_m + ' ' + title + actor
+		tag = data.type
+		if tag:
+			new_name += tag[0]
+
 		new_name = norm_name(new_name)
 		if data.status > 1:
 			new_name = num_m
@@ -316,6 +337,9 @@ def organiz_file(origin: str, destination: str):
 			dfile = sname.replace(name, new_name)
 			dest_file = os.path.join(path_actor, dfile)
 			try:
+				if fname == dest_file:
+					continue
+
 				move(fname, dest_file)
 				logging.info(f'{sname} is moved to {actor}')
 				logging.info(f'Renamed to {dfile}')
