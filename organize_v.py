@@ -295,10 +295,6 @@ def organiz_file(origin: str, destination: str):
 			logging.info(f'{name} ignored')
 			continue
 
-		if actor is None:
-			logging.warning(f'{name} missing actor')
-			continue
-
 		if title is None:
 			logging.warning(f'{name} missing title')
 			continue
@@ -307,10 +303,15 @@ def organiz_file(origin: str, destination: str):
 			logging.warning(f'{name} missing num')
 			continue
 
-		if actor in title:
+		if actor is None:
+			logging.warning(f'{name} missing actor')
+			new_name = num_m + ' ' + title
+			actor = 'NULL'
+		elif actor in title:
 			new_name = num_m + ' ' + title
 		else:
 			new_name = num_m + ' ' + title + actor
+
 		tag = data.type
 		if tag:
 			new_name += tag[0]
