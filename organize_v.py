@@ -152,7 +152,7 @@ class movie:
 
 	def check(self, del_file):
 		# 判断是否缺少视频文件
-		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi')
+		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi','iso')
 		count = 0
 
 		for file in self.files:
@@ -250,6 +250,31 @@ def rename_single_dir(file_path: str, str_ig):
 					logging.info(f'{file} is renamed to {temp}')
 				except Exception as e:
 					logging.error(f'{file} renamed error {e}')
+
+def remove_null_dirs(origin_dir: str) -> list:
+	"""
+	删除空文件夹
+	Args:
+		origin_dir:
+
+	Returns:
+
+	"""
+	file_remove = []
+
+	# topdown=False 递归文件夹深度 由下到上
+	for root, dirs, files in os.walk(origin_dir, topdown=False):
+		for dir1 in dirs:
+			dir_path = os.path.join(root, dir1)
+			allfiles = os.listdir(dir_path)
+			if len(allfiles) == 0:
+				# os.removedirs(dir_path)
+				send2trash(dir_path)
+				file_remove.append('.\\' + dir_path.split('\\')
+								   [-2] + '\\' + dir_path.split('\\')[-1])
+	# file_remove.append(dir_path.split('\\')[-1])
+	return file_remove
+
 
 
 def organiz_file(origin: str, destination: str):
@@ -368,6 +393,8 @@ def main():
 		sys.exit(1)
 
 	count = organiz_file(src_dir, dest_dir)
+	remove = remove_null_dirs(src_dir)
+	print(f'{remove} is send2transh')
 	print(count)
 	logging.info('Complet:{}'.format(count['movie']))
 
