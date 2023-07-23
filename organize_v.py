@@ -182,7 +182,7 @@ def norm_name(fnam: str):
 	if fnam is None or not isinstance(fnam, str):
 		return None
 
-	ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>')
+	ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>','！')
 	ch_replace = ' '
 	max_len = 100  # windows max 250
 
