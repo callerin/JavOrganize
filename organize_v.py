@@ -11,7 +11,7 @@ from send2trash import send2trash
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
 logging.basicConfig(level=logging.INFO,
-                    format=" %(asctime)s - %(levelname)s - %(message)s")
+					format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
 class nfoTree:
@@ -152,7 +152,7 @@ class movie:
 
 	def check(self, del_file):
 		# 判断是否缺少视频文件
-		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi','iso')
+		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi', 'iso','.MP4')
 		count = 0
 
 		for file in self.files:
@@ -182,9 +182,9 @@ def norm_name(fnam: str):
 	if fnam is None or not isinstance(fnam, str):
 		return None
 
-	ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>','！')
+	ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>', '！','+')
 	ch_replace = ' '
-	max_len = 100  # windows max 250
+	max_len = 60  # windows max 250
 
 	new_name = fnam
 	for ch in ch_forbid:
@@ -202,7 +202,8 @@ def rename_single_dir(file_path: str, str_ig):
 		logging.error(f'dir {file_path} not exist')
 		return False
 
-	file_end = ('.mp4', '.wmv', '.mov', '.mkv', '.avi', '.jpg', '.png', '.ass', '.srt', '.sub')
+	file_end = ('.mp4', '.wmv', '.mov', '.mkv', '.avi',
+				'.jpg', '.png', '.ass', '.srt', '.sub')
 
 	flag_nfo = True
 	name_movie = ''
@@ -251,19 +252,29 @@ def rename_single_dir(file_path: str, str_ig):
 				except Exception as e:
 					logging.error(f'{file} renamed error {e}')
 
+
 def remove_null_dirs(origin_dir: str) -> list:
 	"""
 	删除空文件夹
 	Args:
-		origin_dir:
+			origin_dir:
 
 	Returns:
 
 	"""
 	file_remove = []
 
+	del_keys = ('.TXT','.txt','.url')
 	# topdown=False 递归文件夹深度 由下到上
 	for root, dirs, files in os.walk(origin_dir, topdown=False):
+		for file in files:
+			if any(arg in file for arg in del_keys):
+				try:
+					send2trash(file)
+					file_remove.append(file)
+				except Exception as e:
+						logging.info(e)
+
 		for dir1 in dirs:
 			dir_path = os.path.join(root, dir1)
 			allfiles = os.listdir(dir_path)
@@ -274,7 +285,6 @@ def remove_null_dirs(origin_dir: str) -> list:
 								   [-2] + '\\' + dir_path.split('\\')[-1])
 	# file_remove.append(dir_path.split('\\')[-1])
 	return file_remove
-
 
 
 def organiz_file(origin: str, destination: str):
@@ -300,7 +310,10 @@ def organiz_file(origin: str, destination: str):
 				nfo_list.append(temp)
 
 	for nfo in nfo_list:
-		temp = movie(nfo)
+		try:
+			temp = movie(nfo)
+		except Exception as e:
+			logging.error(f'get movie nfo wrong {nfo}')
 		if temp.status:
 			movies.append(temp)
 
@@ -357,6 +370,13 @@ def organiz_file(origin: str, destination: str):
 			os.makedirs(path_actor)
 			logging.info(f'mkdir {actor}')
 
+		# skip aria2 downloading file
+		for file in files:
+			sname = file['name']
+			if sname.endswith('.aria2'):
+				print(f'skip {sname}')
+				continue
+
 		for file in files:
 			fname = file['fname']
 			sname = file['name']
@@ -379,9 +399,12 @@ def organiz_file(origin: str, destination: str):
 
 
 def main():
-	parser = argparse.ArgumentParser(description='Organize video files based on Emby-generated NFO files.')
-	parser.add_argument('-o', '--src_dir', type=str, default='./', help='Source directory containing NFO and Movie files.')
-	parser.add_argument('-d', '--dest_dir', type=str, default='./', help='Destination directory where the organized files will be stored.')
+	parser = argparse.ArgumentParser(
+		description='Organize video files based on Emby-generated NFO files.')
+	parser.add_argument('-o', '--src_dir', type=str, default='./',
+						help='Source directory containing NFO and Movie files.')
+	parser.add_argument('-d', '--dest_dir', type=str, default='./',
+						help='Destination directory where the organized files will be stored.')
 
 	args = parser.parse_args()
 
