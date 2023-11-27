@@ -287,7 +287,7 @@ def remove_null_dirs(origin_dir: str) -> list:
 	return file_remove
 
 
-def organiz_file(origin: str, destination: str):
+def organiz_file(origin: str, destination: str, hardlink: bool):
 	count = {'file': 0, 'movie': 0}
 	if not os.path.exists(origin):
 		logging.error(f'dir {origin} not exist')
@@ -386,7 +386,11 @@ def organiz_file(origin: str, destination: str):
 				if fname == dest_file:
 					continue
 
-				move(fname, dest_file)
+				if hardlink and sname.endswith(('mp4','mkv','avi')):
+					os.link(fname, dest_file)
+				else:
+					move(fname, dest_file)
+
 				logging.info(f'{sname} is moved to {actor}')
 				logging.info(f'Renamed to {dfile}')
 				count['file'] += 1
@@ -401,21 +405,21 @@ def organiz_file(origin: str, destination: str):
 def main():
 	parser = argparse.ArgumentParser(
 		description='Organize video files based on Emby-generated NFO files.')
-	parser.add_argument('-o', '--src_dir', type=str, default='./',
-						help='Source directory containing NFO and Movie files.')
-	parser.add_argument('-d', '--dest_dir', type=str, default='./',
-						help='Destination directory where the organized files will be stored.')
+	parser.add_argument('-o', '--src_dir', type=str, default='./', help='Source directory containing NFO and Movie files.')
+	parser.add_argument('-d', '--dest_dir', type=str, default='./',	help='Destination directory where the organized files will be stored.')
+	parser.add_argument('-l', '--hardlink', type=bool, default=False, help='Do not move media file, Create hardlink.')
 
 	args = parser.parse_args()
 
 	src_dir = os.path.abspath(args.src_dir)
 	dest_dir = os.path.abspath(args.dest_dir)
+	hardlink = args.hardlink
 
 	if not os.path.exists(src_dir):
 		print('Source directory does not exist.')
 		sys.exit(1)
 
-	count = organiz_file(src_dir, dest_dir)
+	count = organiz_file(src_dir, dest_dir, hardlink)
 	remove = remove_null_dirs(src_dir)
 	print(f'{remove} is send2transh')
 	print(count)
