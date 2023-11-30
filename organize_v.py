@@ -10,7 +10,7 @@ from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(level=logging.INFO,filename="info.txt",
+logging.basicConfig(level=logging.INFO,filename="info.txt",filemode="a",
 					format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
@@ -184,7 +184,7 @@ def norm_name(fnam: str):
 
 	ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>', '！','+')
 	ch_replace = ' '
-	max_len = 60  # windows max 250
+	max_len = 66  # windows max 250
 
 	new_name = fnam
 	for ch in ch_forbid:
@@ -302,6 +302,12 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 	for root, dirs, files in os.walk(origin):
 		for file in files:
 			if file.endswith('.nfo'):
+				expr = r'cd(\d){1}'
+				exp = re.compile(expr,re.IGNORECASE)
+				cds = exp.findall(file)
+				if len(cds):
+					if cds[0] != '1':
+						continue
 				temp = {}
 				file_src = os.path.join(root, file)
 				temp['name'] = file
@@ -341,6 +347,8 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 			logging.warning(f'{name} missing num')
 			continue
 
+		title = norm_name(title)
+
 		if actor is None:
 			logging.warning(f'{name} missing actor')
 			new_name = num_m + ' ' + title
@@ -354,7 +362,9 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 		if tag:
 			new_name += tag[0]
 
-		new_name = norm_name(new_name)
+		#new_name = norm_name(new_name)
+
+
 		if data.status > 1:
 			new_name = num_m
 
@@ -390,12 +400,13 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 					os.link(fname, dest_file)
 				else:
 					move(fname, dest_file)
+					pass
 
 				logging.info(f'{sname} is moved to {actor}')
 				logging.info(f'Renamed to {dfile}')
 				count['file'] += 1
-
-				print(f'actor:{actor}\nname:{sname}\nnew:{dfile}\n')
+				if sname.endswith(('mp4','mkv','avi')):
+					print(f'actor:{actor}\n{sname}  rename\n{dfile}\n')
 
 			except Exception as e:
 				logging.error(f'Move file error{e}')
