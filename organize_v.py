@@ -10,7 +10,7 @@ from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.INFO,filename="info.txt",
 					format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
@@ -394,6 +394,9 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 				logging.info(f'{sname} is moved to {actor}')
 				logging.info(f'Renamed to {dfile}')
 				count['file'] += 1
+
+				print(f'actor:{actor}\nname:{sname}\nnew:{dfile}\n')
+
 			except Exception as e:
 				logging.error(f'Move file error{e}')
 
