@@ -152,11 +152,15 @@ class movie:
 
 	def check(self, del_file):
 		# 判断是否缺少视频文件
-		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi', 'iso','.MP4')
+		#  0  	无视频文件
+		#  1  	1个文件
+		# -1 	缺少图片文件
+		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi', 'iso')
 		count = 0
 
 		for file in self.files:
-			if file['name'].endswith(file_end):
+			temp = file['name'].lower()
+			if temp.endswith(file_end):
 				count = count + 1
 
 		if del_file and count == 0:
@@ -164,6 +168,13 @@ class movie:
 				send2trash(file['fname'])
 				name = file['name']
 				logging.info(f'{name} is send2trash')
+
+		if (count+1) == len(self.files):
+			file_temp = self.files[0]
+			file_temp = file_temp['name']
+			logging.warning(f'missing image file\n{file_temp}')
+			print(file_temp)
+			return -1
 
 		return count
 
@@ -210,7 +221,10 @@ def rename_single_dir(file_path: str, str_ig):
 	for root, dirs, files in os.walk(file_path):
 		nfo_list = []
 		temp_nfo = {}
+
 		for file in files:
+			new_name = rename_file(root,file)
+			file = new_name
 			if file.endswith('.nfo'):
 				name_movie = os.path.splitext(file)[0]
 				if '-cd' in name_movie or '-CD' in name_movie:
@@ -235,8 +249,8 @@ def rename_single_dir(file_path: str, str_ig):
 			continue
 
 		for file in files:
-			temp1 = file.upper()
-			temp2 = name_movie.upper()
+			temp1 = file.lower()
+			temp2 = name_movie.lower()
 			if not temp2 in temp1:
 				if file == 'log.txt':
 					continue
@@ -287,11 +301,65 @@ def remove_null_dirs(origin_dir: str) -> list:
 	return file_remove
 
 
-def organiz_file(origin: str, destination: str, hardlink: bool):
+def rename_file(file_path:str,file_name:str) -> str:
+	"""
+	重命名文件
+	:param file: 文件绝对路径及名称
+	:return:
+
+	"""
+	pattern1 = ['_', '-']
+	pattern2 = ['1', '2', '3', '4', 'A', 'B',
+				'C', 'D', 'E', 'a', 'b.', 'c', 'd', 'e'
+				]
+	pattern3 = ['.', '-']
+	number = {
+		'A': '1',
+		'B': '2',
+		'C': '3',
+		'D': '4',
+		'E': '5',
+		'a': '1',
+		'b': '2',
+		'c': '3',
+		'd': '4',
+		'e': '5',
+	}
+
+	result = os.path.join(file_path,file_name)
+	file = result
+	file_sname = os.path.splitext(file_name)[0]
+	for pat1 in pattern1:
+		for pat2 in pattern2:
+			for pat3 in pattern3:
+				pattern = pat1 + pat2 + pat3
+				if pattern in file_name:
+					series =  '-CD'+ pat2
+					result = file_name.replace(pat1 + pat2, series)
+					if pat2 in number:
+						result = result.replace(pat2, number[pat2])
+
+					temp = file_name.split(pat1)
+					temp_name = temp[0] + '-' + temp[1]
+					des_path = os.path.join(file_path, temp_name)
+
+					if not os.path.exists(des_path):
+						os.mkdir(des_path)
+
+					des = os.path.join(des_path, result)
+					move(file, des)
+					print("{} renamed {}".format(
+						file.split('\\')[-1], result.split('\\')[-1]))
+					break
+	return result
+
+
+def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 	count = {'file': 0, 'movie': 0}
 	if not os.path.exists(origin):
 		logging.error(f'dir {origin} not exist')
 		return count
+	miss_folder = os.path.join(destination,'miss_file')
 
 	nfo_list = []
 	movies = []
@@ -308,6 +376,7 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 				if len(cds):
 					if cds[0] != '1':
 						continue
+
 				temp = {}
 				file_src = os.path.join(root, file)
 				temp['name'] = file
@@ -332,7 +401,7 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 		actor = data.nfo.actor
 		num_m = data.nfo.num
 		title = data.nfo.title
-
+		full_name = files[0]['fname']
 		str_ignore = ()
 
 		if any(arg in name for arg in str_ignore):
@@ -350,7 +419,7 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 		title = norm_name(title)
 
 		if actor is None:
-			logging.warning(f'{name} missing actor')
+			logging.warning(f'{full_name} missing actor')
 			new_name = num_m + ' ' + title
 			actor = 'NULL'
 		elif actor in title:
@@ -368,7 +437,11 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 		if data.status > 1:
 			new_name = num_m
 
-		full_name = files[0]['fname']
+		# move missing image media to other folder
+		if data.status == -1:
+			destination = miss_folder
+			logging.warning(f'miss image {title}')
+
 		if 'cd' in full_name or 'CD' in full_name or data.status > 1:
 			tmp = os.path.join(destination, actor)
 			path_actor = os.path.join(tmp, num_m)
@@ -380,18 +453,11 @@ def organiz_file(origin: str, destination: str, hardlink: bool):
 			os.makedirs(path_actor)
 			logging.info(f'mkdir {actor}')
 
-		# skip aria2 downloading file
-		for file in files:
-			sname = file['name']
-			if sname.endswith('.aria2'):
-				print(f'skip {sname}')
-				continue
-
 		for file in files:
 			fname = file['fname']
 			sname = file['name']
 			dfile = sname.replace(name, new_name)
-			dest_file = os.path.join(path_actor, dfile)
+			dest_file = os.path.join(path_actor, dfile.lower())
 			try:
 				if fname == dest_file:
 					continue
@@ -422,18 +488,20 @@ def main():
 	parser.add_argument('-o', '--src_dir', type=str, default='./', help='Source directory containing NFO and Movie files.')
 	parser.add_argument('-d', '--dest_dir', type=str, default='./',	help='Destination directory where the organized files will be stored.')
 	parser.add_argument('-l', '--hardlink', type=bool, default=False, help='Do not move media file, Create hardlink.')
+	parser.add_argument('-m', '--miss_image', type=bool, default='0', help='move files whithout images to other folder.')
 
 	args = parser.parse_args()
 
 	src_dir = os.path.abspath(args.src_dir)
 	dest_dir = os.path.abspath(args.dest_dir)
 	hardlink = args.hardlink
+	miss = args.miss_image
 
 	if not os.path.exists(src_dir):
 		print('Source directory does not exist.')
 		sys.exit(1)
 
-	count = organiz_file(src_dir, dest_dir, hardlink)
+	count = organiz_file(src_dir, dest_dir, hardlink, miss)
 	remove = remove_null_dirs(src_dir)
 	print(f'{remove} is send2transh')
 	print(count)
