@@ -287,7 +287,8 @@ def remove_null_dirs(origin_dir: str) -> list:
 		for file in files:
 			if any(arg in file for arg in del_keys):
 				try:
-					send2trash(file)
+					full_name = os.path.join(root,file)
+					send2trash(full_name)
 					file_remove.append(file)
 				except Exception as e:
 						logging.info(e)
