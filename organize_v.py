@@ -212,59 +212,61 @@ def rename_single_dir(file_path: str, str_ig):
 	if not os.path.exists(file_path):
 		logging.error(f'dir {file_path} not exist')
 		return False
-
-	file_end = ('.mp4', '.wmv', '.mov', '.mkv', '.avi',
-				'.jpg', '.png', '.ass', '.srt', '.sub')
+	file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi', 'iso')
+	file_image = ('fanart','landscape','poster')
 
 	flag_nfo = True
 	name_movie = ''
 	for root, dirs, files in os.walk(file_path):
 		nfo_list = []
 		temp_nfo = {}
+		file_list = []
+		image_list = []
+		movie_list = []
 
 		for file in files:
-			new_name = rename_file(root,file)
-			file = new_name
-			if file.endswith('.nfo'):
-				name_movie = os.path.splitext(file)[0]
-				if '-cd' in name_movie or '-CD' in name_movie:
-					name_movie = name_movie[0:-4]
-				for arg in str_ig:
-					name_movie = name_movie.replace(arg, '')
-				flag_nfo = False
+			# rename series movie with cd1 cd2 ...
+			result = rename_file(root,file)
+			new_name = os.path.split(result)[-1]
+			file_list.append(new_name)
+			if new_name.endswith('.nfo'):
+				nfo_list.append(new_name)
+			elif file.startswith(file_image):
+				image_list.append(new_name)
+			elif new_name.endswith(file_end):
+				movie_list.append(new_name)
+			elif new_name.endswith('.nfo'):
+				nfo_list.append(new_name)
 
-				temp_nfo = {}
-				file_src = os.path.join(root, file)
-				temp_nfo['name'] = file
-				temp_nfo['path'] = root
-				temp_nfo['fname'] = file_src
-				nfo_list.append(temp_nfo)
+		flag_re = True
 
-		if flag_nfo:
+		if len(movie_list)<1:
 			continue
-		if len(nfo_list) != 1:
-			continue
-		temp_movie = movie(nfo_list[0])
-		if temp_movie.status != 1:
-			continue
+		m1 = movie_list[0]
+		name_movie = os.path.splitext(m1)[0]
+		name_s = name_movie.replace('-CD','-cd')
+		name_s = name_s.split('-cd')[0]
 
-		for file in files:
-			temp1 = file.lower()
-			temp2 = name_movie.lower()
-			if not temp2 in temp1:
-				if file == 'log.txt':
-					continue
-				if not any(file.endswith(arg) for arg in file_end):
-					continue
+		#if len(movie_list)==1 and len(nfo_list)==1:
+		if len(movie_list)==1 :
+			flag_re = True
+		elif len(movie_list)>1:
+			for movie in movie_list:
+				if not movie.startswith(name_s):
+					flag_re = False
+					break
+		else:
+			flag_re = False
 
-				fname = os.path.join(root, file)
-				temp = temp_movie.name + '-' + file  # type: ignore
-				new_name = os.path.join(root, temp)
+		if flag_re:
+			for image in image_list:
+				new_name = name_s +'-'+ image
+				temp1 = os.path.join(root,image)
+				temp2 = os.path.join(root,new_name)
 				try:
-					os.rename(fname, new_name)
-					logging.info(f'{file} is renamed to {temp}')
+					os.rename(temp1, temp2)
 				except Exception as e:
-					logging.error(f'{file} renamed error {e}')
+					logging.error(f'{temp1} renamed error\n{e}')
 
 
 def remove_null_dirs(origin_dir: str) -> list:
@@ -279,6 +281,7 @@ def remove_null_dirs(origin_dir: str) -> list:
 	file_remove = []
 
 	del_keys = ('.TXT','.txt','.url')
+
 	# topdown=False 递归文件夹深度 由下到上
 	for root, dirs, files in os.walk(origin_dir, topdown=False):
 		for file in files:
@@ -303,8 +306,8 @@ def remove_null_dirs(origin_dir: str) -> list:
 
 def rename_file(file_path:str,file_name:str) -> str:
 	"""
-	重命名文件
-	:param file: 文件绝对路径及名称
+	重命名文件	仅处理单独文件夹内的文件
+	:param file_path: 文件绝对路径
 	:return:
 
 	"""
@@ -334,7 +337,7 @@ def rename_file(file_path:str,file_name:str) -> str:
 			for pat3 in pattern3:
 				pattern = pat1 + pat2 + pat3
 				if pattern in file_name:
-					series =  '-CD'+ pat2
+					series =  '-cd'+ pat2
 					result = file_name.replace(pat1 + pat2, series)
 					if pat2 in number:
 						result = result.replace(pat2, number[pat2])
@@ -464,11 +467,12 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 
 				if hardlink and sname.endswith(('mp4','mkv','avi')):
 					os.link(fname, dest_file)
+					logging.info(f'{sname} is linked to {dfile}')
 				else:
 					move(fname, dest_file)
-					pass
+					logging.info(f'{sname} is moved to {actor}')
 
-				logging.info(f'{sname} is moved to {actor}')
+
 				logging.info(f'Renamed to {dfile}')
 				count['file'] += 1
 				if sname.endswith(('mp4','mkv','avi')):
@@ -487,15 +491,23 @@ def main():
 		description='Organize video files based on Emby-generated NFO files.')
 	parser.add_argument('-o', '--src_dir', type=str, default='./', help='Source directory containing NFO and Movie files.')
 	parser.add_argument('-d', '--dest_dir', type=str, default='./',	help='Destination directory where the organized files will be stored.')
-	parser.add_argument('-l', '--hardlink', type=bool, default=False, help='Do not move media file, Create hardlink.')
-	parser.add_argument('-m', '--miss_image', type=bool, default='0', help='move files whithout images to other folder.')
+	parser.add_argument('-l', '--hlink', type=int, default=0, help='Do not move media file, Create hardlink.')
+	parser.add_argument('-m', '--m_image', type=int, default=0, help='move files whithout images to other folder.')
 
 	args = parser.parse_args()
 
 	src_dir = os.path.abspath(args.src_dir)
 	dest_dir = os.path.abspath(args.dest_dir)
-	hardlink = args.hardlink
-	miss = args.miss_image
+
+	if args.hlink>0:
+		hardlink = True
+	else:
+		hardlink = False
+
+	if args.m_image>0:
+		miss = True
+	else:
+		miss = False
 
 	if not os.path.exists(src_dir):
 		print('Source directory does not exist.')
