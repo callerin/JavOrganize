@@ -10,7 +10,7 @@ from send2trash import send2trash
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
-logging.basicConfig(level=logging.INFO,filename="info.txt",filemode="a",
+logging.basicConfig(level=logging.INFO,filename="log.txt",filemode="a",
 					format=" %(asctime)s - %(levelname)s - %(message)s")
 
 
@@ -156,27 +156,31 @@ class movie:
 		#  1  	1个文件
 		# -1 	缺少图片文件
 		file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi', 'iso')
-		count = 0
+		file_image = ('.png','.jpg')
+		count_media = 0
+		count_image = 0
 
 		for file in self.files:
 			temp = file['name'].lower()
 			if temp.endswith(file_end):
-				count = count + 1
+				count_media = count_media + 1
+			elif temp.endswith(file_image):
+				count_image = count_image + 1
 
-		if del_file and count == 0:
+		if del_file and count_media == 0:
 			for file in self.files:
 				send2trash(file['fname'])
 				name = file['name']
 				logging.info(f'{name} is send2trash')
 
-		if (count+1) == len(self.files):
+		if count_image == 0:
 			file_temp = self.files[0]
 			file_temp = file_temp['name']
 			logging.warning(f'missing image file\n{file_temp}')
 			print(file_temp)
 			return -1
 
-		return count
+		return count_media
 
 	def get_type(self):
 		tag = []
@@ -214,6 +218,7 @@ def rename_single_dir(file_path: str, str_ig):
 		return False
 	file_end = ('.mp4', '.wmv', '.mov', '.mkv', 'avi', 'iso')
 	file_image = ('fanart','landscape','poster')
+	del_keys = ('强 力 推 荐','高速連接')
 
 	flag_nfo = True
 	name_movie = ''
@@ -225,6 +230,15 @@ def rename_single_dir(file_path: str, str_ig):
 		movie_list = []
 
 		for file in files:
+			# delete files
+			if any(arg in file for arg in del_keys):
+				try:
+					send2trash(os.path.join(root,file))
+					logging.info(f'{file} deleted')
+					print(f'{file} deleted')
+				except Exception as e:
+					logging.error(f'delete file error\n{e}')
+
 			# rename series movie with cd1 cd2 ...
 			result = rename_file(root,file)
 			new_name = os.path.split(result)[-1]
@@ -285,6 +299,8 @@ def remove_null_dirs(origin_dir: str) -> list:
 	# topdown=False 递归文件夹深度 由下到上
 	for root, dirs, files in os.walk(origin_dir, topdown=False):
 		for file in files:
+			if file.startswith('log'):
+				continue
 			if any(arg in file for arg in del_keys):
 				try:
 					full_name = os.path.join(root,file)
@@ -391,10 +407,10 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 	for nfo in nfo_list:
 		try:
 			temp = movie(nfo)
+			if temp.status:
+				movies.append(temp)
 		except Exception as e:
 			logging.error(f'get movie nfo wrong {nfo}')
-		if temp.status:
-			movies.append(temp)
 
 	if len(movies) == 0:
 		return count
@@ -442,7 +458,7 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 			new_name = num_m
 
 		# move missing image media to other folder
-		if data.status == -1:
+		if data.status == -1 and miss:
 			destination = miss_folder
 			logging.warning(f'miss image {title}')
 
