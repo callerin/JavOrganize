@@ -3,10 +3,12 @@ import os
 import sys
 import logging
 import argparse
+import time
 from unittest import result
 import xml.etree.ElementTree as ET
 from shutil import move
 from send2trash import send2trash
+from concurrent.futures import ThreadPoolExecutor,as_completed
 
 # logging.disable(logging.INFO)
 # logging.disable(logging.DEBUG)
@@ -177,7 +179,7 @@ class movie:
 			file_temp = self.files[0]
 			file_temp = file_temp['name']
 			logging.warning(f'missing image file\n{file_temp}')
-			print(file_temp)
+			#print(file_temp)
 			return -1
 
 		return count_media
@@ -235,7 +237,8 @@ def rename_single_dir(file_path: str, str_ig):
 				try:
 					send2trash(os.path.join(root,file))
 					logging.info(f'{file} deleted')
-					print(f'{file} deleted')
+					if file.endswith(file_end):
+						print(f'{file} deleted')
 				except Exception as e:
 					logging.error(f'delete file error\n{e}')
 
@@ -329,8 +332,8 @@ def rename_file(file_path:str,file_name:str) -> str:
 
 	"""
 	pattern1 = ['_', '-']
-	pattern2 = ['1', '2', '3', '4', 'A', 'B',
-				'C', 'D', 'E', 'a', 'b.', 'c', 'd', 'e'
+	pattern2 = ['1', '2', '3', '4',
+				# 'A', 'B','C', 'D', 'E', 'a', 'b.', 'c', 'd', 'e'
 				]
 	pattern3 = ['.', '-']
 	number = {
@@ -373,13 +376,129 @@ def rename_file(file_path:str,file_name:str) -> str:
 					break
 	return result
 
+def main_process(nfo:dict,key_list:list):
+	move_file=0
+	move_movie=0
+	try:
+		movie_c = movie(nfo)
+		if movie_c.status == 0:
+			return [0,0]
+	except Exception as e:
+		logging.error(f'get movie nfo wrong {nfo}')
+
+	move_file=0
+	move_movie=0
+	origin = key_list[0]
+	destination = key_list[1]
+	hardlink = key_list[2]
+	miss = key_list[3]
+
+	name = movie_c.name
+	files = movie_c.files
+	actor = movie_c.nfo.actor
+	num_m = movie_c.nfo.num
+	title = movie_c.nfo.title
+	full_name = files[0]['fname']
+	str_ignore = ()
+
+	if any(arg in name for arg in str_ignore):
+		logging.info(f'{name} ignored')
+		return [0,0]
+
+	if title is None:
+		logging.warning(f'{name} missing title')
+		return [0,0]
+
+	if num_m is None:
+		logging.warning(f'{name} missing num')
+		return [0,0]
+
+	title = norm_name(title)
+
+	if actor is None:
+		logging.warning(f'{full_name} missing actor')
+		new_name = num_m + ' ' + title
+		actor = 'NULL'
+	elif actor in title:
+		new_name = num_m + ' ' + title
+	else:
+		new_name = num_m + ' ' + title + actor
+
+	tag = movie_c.type
+	if tag:
+		new_name += tag[0]
+
+	if movie_c.status > 1:
+		new_name = num_m
+
+	# move missing image media to other folder
+	if movie_c.status == -1 and miss:
+		destination = miss_folder
+		logging.warning(f'miss image {title}')
+
+		for file in files:
+			fname = file['fname']
+			sname = file['name']
+			dest = os.path.join(destination,sname)
+			if not os.path.exists(destination):
+				os.makedirs(destination)
+			try:
+				move(fname,dest)
+				print(f'move miss file\n{sname}')
+			except Exception as e:
+				logging.error(f'move miss file error{e}')
+			continue
+
+	if 'cd' in full_name or 'CD' in full_name or movie_c.status > 1:
+		tmp = os.path.join(destination, actor)
+		path_actor = os.path.join(tmp, num_m)
+	else:
+		path_actor = os.path.join(destination, actor)
+
+	# makedir with actor name
+	if not os.path.exists(path_actor):
+		try:
+			os.makedirs(path_actor)
+			logging.info(f'mkdir {actor}')
+		except Exception as e:
+			logging.error(f'make actor dir error{e}')
+
+	for file in files:
+		fname = file['fname']
+		sname = file['name']
+		dfile = sname.replace(name, new_name)
+		dest_file = os.path.join(path_actor, dfile)
+		try:
+			if fname == dest_file:
+				continue
+
+			if hardlink and sname.endswith(('mp4','mkv','avi')):
+				os.link(fname, dest_file)
+				logging.info(f'{sname} is linked to {dfile}')
+			else:
+				move(fname, dest_file)
+				logging.info(f'{sname} is moved to {actor}')
+
+
+			logging.info(f'Renamed to {dfile}')
+			move_file += 1
+			if sname.endswith(('mp4','mkv','avi')):
+				print(f'actor:{actor}\n{sname}  rename\n{dfile}\n')
+
+		except Exception as e:
+			logging.error(f'Move file error{e}')
+
+	move_movie += 1
+
+	return [move_file,move_movie]
+
 
 def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 	count = {'file': 0, 'movie': 0}
 	if not os.path.exists(origin):
 		logging.error(f'dir {origin} not exist')
 		return count
-	miss_folder = os.path.join(destination,'miss_file')
+	miss_folder = os.path.join(origin,'miss_file')
 
 	nfo_list = []
 	movies = []
@@ -404,101 +523,17 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 				temp['fname'] = file_src
 				nfo_list.append(temp)
 
-	for nfo in nfo_list:
-		try:
-			temp = movie(nfo)
-			if temp.status:
-				movies.append(temp)
-		except Exception as e:
-			logging.error(f'get movie nfo wrong {nfo}')
+	max_worker = 8
 
-	if len(movies) == 0:
-		return count
-
-	for data in movies:
-		name = data.name
-		files = data.files
-		actor = data.nfo.actor
-		num_m = data.nfo.num
-		title = data.nfo.title
-		full_name = files[0]['fname']
-		str_ignore = ()
-
-		if any(arg in name for arg in str_ignore):
-			logging.info(f'{name} ignored')
-			continue
-
-		if title is None:
-			logging.warning(f'{name} missing title')
-			continue
-
-		if num_m is None:
-			logging.warning(f'{name} missing num')
-			continue
-
-		title = norm_name(title)
-
-		if actor is None:
-			logging.warning(f'{full_name} missing actor')
-			new_name = num_m + ' ' + title
-			actor = 'NULL'
-		elif actor in title:
-			new_name = num_m + ' ' + title
-		else:
-			new_name = num_m + ' ' + title + actor
-
-		tag = data.type
-		if tag:
-			new_name += tag[0]
-
-		#new_name = norm_name(new_name)
-
-
-		if data.status > 1:
-			new_name = num_m
-
-		# move missing image media to other folder
-		if data.status == -1 and miss:
-			destination = miss_folder
-			logging.warning(f'miss image {title}')
-
-		if 'cd' in full_name or 'CD' in full_name or data.status > 1:
-			tmp = os.path.join(destination, actor)
-			path_actor = os.path.join(tmp, num_m)
-		else:
-			path_actor = os.path.join(destination, actor)
-
-		# makedir with actor name
-		if not os.path.exists(path_actor):
-			os.makedirs(path_actor)
-			logging.info(f'mkdir {actor}')
-
-		for file in files:
-			fname = file['fname']
-			sname = file['name']
-			dfile = sname.replace(name, new_name)
-			dest_file = os.path.join(path_actor, dfile.lower())
-			try:
-				if fname == dest_file:
-					continue
-
-				if hardlink and sname.endswith(('mp4','mkv','avi')):
-					os.link(fname, dest_file)
-					logging.info(f'{sname} is linked to {dfile}')
-				else:
-					move(fname, dest_file)
-					logging.info(f'{sname} is moved to {actor}')
-
-
-				logging.info(f'Renamed to {dfile}')
-				count['file'] += 1
-				if sname.endswith(('mp4','mkv','avi')):
-					print(f'actor:{actor}\n{sname}  rename\n{dfile}\n')
-
-			except Exception as e:
-				logging.error(f'Move file error{e}')
-
-		count['movie'] += 1
+	with ThreadPoolExecutor(max_worker) as pool:
+		keys = [origin,destination,hardlink,miss]
+		futures = [pool.submit(main_process,nfo,keys) for nfo in nfo_list]
+		pool.shutdown(wait=True)
+		for fut in as_completed(futures):
+			data = fut.result()
+			if not data is None:
+				count['file'] += data[0]
+				count['movie'] += data[1]
 
 	return count
 
@@ -530,12 +565,15 @@ def main():
 		print('Source directory does not exist.')
 		sys.exit(1)
 
+	begin = time.time()
 	count = organiz_file(src_dir, dest_dir, hardlink, miss)
 	remove = remove_null_dirs(src_dir)
 	print(f'{remove} is send2transh')
 	print(count)
 	logging.info('Complet:{}'.format(count['movie']))
-
+	stop = time.time()
+	logging.info(f'time:{stop - begin}')
+	print(f'time:{stop - begin}')
 
 if __name__ == '__main__':
 	main()

@@ -2,18 +2,18 @@
 
 - ## 根据Emby刮削数据整理Video文件
 
-- ## 目前支持Javscraper、JavTube刮削数据
+- ## 目前支持Javscraper、JavTube刮削数据（EMBY设置勾选“将媒体图像保存到媒体文件夹中”）
 
 > ### 使用方法
 >
 > 使用命令行直接运行脚本文件，命令格式 python ./organize_v.py -o src_dir -d dest_dir
 >
 > <u>说明：organize_v.py使用绝对路径或者加入path, src_dir dest_dir 为可选参数，分别为待处理文件夹路径，移动文件目录，无输入参数时默认为终端当前路径</u>
->
+
 > ```python
->  
+>
 > python organize_v.py -o src_dir -d dest_dir
-> 
+>
 > ```
 >
 
@@ -30,7 +30,9 @@
 >
 > 多文件影片命名需包含 ‘-CD’关键字，例如 ‘STARS-685-cd1.mp4 STARS-685-cd2.mp4’，识别成功后创建番号文件夹单独存放多文件影片
 
-
+> -l 1 选项不移动就，创建hardlink，避免干扰PT做种
+>
+> -m 1 选项将缺少图片文件的部分视频单独存放，慎用
 
 ***下载症患者、懒癌必备。[搭配MoveFile食用更佳](https://github.com/callerin/FileRename/blob/main/MoveFile.py)***
 
