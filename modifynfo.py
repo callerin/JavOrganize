@@ -1,11 +1,11 @@
 import os
 import time
 import argparse
-from re import T
 from organize_v import nfoTree
 from concurrent.futures import ThreadPoolExecutor,as_completed
 
 def process(file_src:str):
+	# delete keywords
 	del_key = ('107','002')
 	file_name = os.path.split(file_src)[-1]
 
@@ -28,8 +28,6 @@ def process(file_src:str):
 
 	data.tree.write(file_src,encoding='utf-8',xml_declaration=True)
 
-
-	pass
 
 def main():
 	parser = argparse.ArgumentParser(description='Emby-generated NFO files.')

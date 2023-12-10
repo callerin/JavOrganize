@@ -327,8 +327,11 @@ def remove_null_dirs(origin_dir: str) -> list:
 			if len(allfiles) == 0:
 				# os.removedirs(dir_path)
 				send2trash(dir_path)
-				file_remove.append('.\\' + dir_path.split('\\')
-								   [-2] + '\\' + dir_path.split('\\')[-1])
+				try:
+					temp = os.path.split(dir_path)[-1]
+					file_remove.append('.\\' + temp)
+				except Exception as e:
+					logging.error(f'remove error\n{e}')
 	# file_remove.append(dir_path.split('\\')[-1])
 	return file_remove
 
@@ -389,11 +392,14 @@ def main_process(nfo:dict,key_list:list):
 	move_file=0
 	move_movie=0
 	try:
+		f_name = nfo['fname']
 		movie_c = movie(nfo)
 		if movie_c.status == 0:
 			return [0,0]
 	except Exception as e:
-		logging.error(f'get movie nfo wrong {nfo}')
+		print(f'get movie nfoTree wrong {f_name}')
+		logging.error(f'get movie nfoTree wrong {f_name}\n{e}')
+		return [0,0]
 
 	move_file=0
 	move_movie=0
@@ -407,15 +413,16 @@ def main_process(nfo:dict,key_list:list):
 	files = movie_c.files
 	actor = movie_c.nfo.actor
 	num_m = movie_c.nfo.num
-	title = movie_c.nfo.title
+	tittle = movie_c.nfo.title
 	full_name = files[0]['fname']
+
 	str_ignore = ()
 
 	if any(arg in name for arg in str_ignore):
 		logging.info(f'{name} ignored')
 		return [0,0]
 
-	if title is None:
+	if tittle is None:
 		logging.warning(f'{name} missing title')
 		return [0,0]
 
@@ -423,16 +430,16 @@ def main_process(nfo:dict,key_list:list):
 		logging.warning(f'{name} missing num')
 		return [0,0]
 
-	title = norm_name(title)
+	tittle = norm_name(tittle)
 
 	if actor is None:
 		logging.warning(f'{full_name} missing actor')
-		new_name = num_m + ' ' + title
+		new_name = num_m + ' ' + tittle
 		actor = 'NULL'
-	elif actor in title:
-		new_name = num_m + ' ' + title
+	elif actor in tittle:
+		new_name = num_m + ' ' + tittle
 	else:
-		new_name = num_m + ' ' + title + actor
+		new_name = num_m + ' ' + tittle + actor
 
 	tag = movie_c.type
 	if tag:
@@ -444,7 +451,7 @@ def main_process(nfo:dict,key_list:list):
 	# move missing image media to other folder
 	if movie_c.status == -1 and miss:
 		destination = miss_folder
-		logging.warning(f'miss image {title}')
+		logging.warning(f'miss image {tittle}')
 
 		for file in files:
 			fname = file['fname']
@@ -487,11 +494,13 @@ def main_process(nfo:dict,key_list:list):
 				logging.info(f'{sname} is linked to {dfile}')
 			else:
 				if os.path.exists(dest_file):
+					print(f'{dfile} exists')
+					logging.warning(f'{fname} {dest_file} exists')
 					continue
 				move(fname, dest_file)
-				logging.info(f'{sname} is moved to {actor}')
+				logging.info(f'{sname} is moved to {actor} {dfile}')
 
-			logging.info(f'Renamed to {dfile}')
+			logging.info(f'Renamed {sname} to {dfile}')
 			move_file += 1
 			if sname.endswith(('mp4','mkv','avi')):
 				print(f'actor:{actor}\n{sname}  rename\n{dfile}\n')
@@ -536,7 +545,7 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 				temp['fname'] = file_src
 				nfo_list.append(temp)
 	stop = time.time()
-	print(f'getting nfo files ready. time:{stop-begin}')
+	print(f'getting nfo files ready. \ntime:{stop-begin}')
 
 	max_worker = 8
 
