@@ -73,7 +73,6 @@ class nfoTree:
 			return actor_name
 		except Exception as e:
 			logging.error(f'{self.num} actor is null')
-			print(f'{self.num} actor is null')
 
 	def get_title(self, stag='originaltitle'):
 		title_node = self.root.findall(stag)
@@ -84,6 +83,7 @@ class nfoTree:
 			logging.error(f'Get title error{e}')
 
 	def get_num(self):
+		del_key = ('107','002')
 
 		title_node = self.root.findall('title')
 		try:
@@ -98,6 +98,11 @@ class nfoTree:
 		except Exception as e:
 			num = None
 			logging.error(f'{title} get num wrong {e}')
+
+		for tag in del_key:
+			if num.startswith(tag):
+				n = len(tag)
+				num=num[n:]
 		return num
 
 	def get_apple(self):
@@ -201,7 +206,7 @@ def norm_name(fnam: str):
 
 	ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>', '！','+')
 	ch_replace = ' '
-	max_len = 66  # windows max 250
+	max_len = 80  # windows max 250
 
 	new_name = fnam
 	for ch in ch_forbid:
@@ -277,7 +282,11 @@ def rename_single_dir(file_path: str, str_ig):
 
 		if flag_re:
 			for image in image_list:
-				new_name = name_s +'-'+ image
+				if len(movie_list) > 1:
+					new_name = name_s + '-cd1-' + image
+				else:
+					new_name = name_s + '-' + image
+
 				temp1 = os.path.join(root,image)
 				temp2 = os.path.join(root,new_name)
 				try:
@@ -333,7 +342,7 @@ def rename_file(file_path:str,file_name:str) -> str:
 	"""
 	pattern1 = ['_', '-']
 	pattern2 = ['1', '2', '3', '4',
-				# 'A', 'B','C', 'D', 'E', 'a', 'b.', 'c', 'd', 'e'
+             'A', 'B', 'C', 'D', 'E', 'a', 'b', 'c', 'd', 'e'
 				]
 	pattern3 = ['.', '-']
 	number = {
@@ -357,22 +366,22 @@ def rename_file(file_path:str,file_name:str) -> str:
 			for pat3 in pattern3:
 				pattern = pat1 + pat2 + pat3
 				if pattern in file_name:
-					series =  '-cd'+ pat2
-					result = file_name.replace(pat1 + pat2, series)
+					series = '-cd' + pat2 + pat3
+					result = file_name.replace(pattern, series)
 					if pat2 in number:
 						result = result.replace(pat2, number[pat2])
 
-					temp = file_name.split(pat1)
-					temp_name = temp[0] + '-' + temp[1]
+					temp = file_name.split(pattern)
+					temp_name = temp[0]
 					des_path = os.path.join(file_path, temp_name)
 
 					if not os.path.exists(des_path):
 						os.mkdir(des_path)
 
 					des = os.path.join(des_path, result)
-					move(file, des)
-					print("{} renamed {}".format(
-						file.split('\\')[-1], result.split('\\')[-1]))
+					if not os.path.exists(des):
+						move(file, des)
+					# print("{} renamed {}".format(file.split('\\')[-1], result.split('\\')[-1]))
 					break
 	return result
 
@@ -392,6 +401,7 @@ def main_process(nfo:dict,key_list:list):
 	destination = key_list[1]
 	hardlink = key_list[2]
 	miss = key_list[3]
+	miss_folder = os.path.join(destination, 'miss_file')
 
 	name = movie_c.name
 	files = movie_c.files
@@ -476,9 +486,10 @@ def main_process(nfo:dict,key_list:list):
 				os.link(fname, dest_file)
 				logging.info(f'{sname} is linked to {dfile}')
 			else:
+				if os.path.exists(dest_file):
+					continue
 				move(fname, dest_file)
 				logging.info(f'{sname} is moved to {actor}')
-
 
 			logging.info(f'Renamed to {dfile}')
 			move_file += 1
@@ -506,6 +517,8 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 	str_keep = ('-4k', '-1080p', '-C', '-4K')
 	rename_single_dir(origin, str_keep)
 
+	print('getting nfo files')
+	begin = time.time()
 	for root, dirs, files in os.walk(origin):
 		for file in files:
 			if file.endswith('.nfo'):
@@ -522,6 +535,8 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 				temp['path'] = root
 				temp['fname'] = file_src
 				nfo_list.append(temp)
+	stop = time.time()
+	print(f'getting nfo files ready. time:{stop-begin}')
 
 	max_worker = 8
 
