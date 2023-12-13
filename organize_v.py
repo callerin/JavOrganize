@@ -206,7 +206,7 @@ def norm_name(fnam: str):
 
 	ch_forbid = (':', '/', '\\', '?', '*', '|', '<', '>', '！','+')
 	ch_replace = ' '
-	max_len = 80  # windows max 250
+	max_len = 66  # windows max 250
 
 	new_name = fnam
 	for ch in ch_forbid:
@@ -289,10 +289,16 @@ def rename_single_dir(file_path: str, str_ig):
 
 				temp1 = os.path.join(root,image)
 				temp2 = os.path.join(root,new_name)
+				if os.path.exists(temp2):
+					print(f'{image} exists')
+					continue
 				try:
 					os.rename(temp1, temp2)
 				except Exception as e:
 					logging.error(f'{temp1} renamed error\n{e}')
+
+
+
 
 
 def remove_null_dirs(origin_dir: str) -> list:
@@ -307,13 +313,15 @@ def remove_null_dirs(origin_dir: str) -> list:
 	file_remove = []
 
 	del_keys = ('.TXT','.txt','.url')
+	del_art = ('fanart','poster','landscape')
 
 	# topdown=False 递归文件夹深度 由下到上
 	for root, dirs, files in os.walk(origin_dir, topdown=False):
 		for file in files:
+			del_flag = False
 			if file.startswith('log'):
 				continue
-			if any(arg in file for arg in del_keys):
+			if file.startswith(del_art) or any(arg in file for arg in del_keys):
 				try:
 					full_name = os.path.join(root,file)
 					send2trash(full_name)
@@ -330,6 +338,7 @@ def remove_null_dirs(origin_dir: str) -> list:
 				try:
 					temp = os.path.split(dir_path)[-1]
 					file_remove.append('.\\' + temp)
+					print(f'{dir_path} deleted')
 				except Exception as e:
 					logging.error(f'remove error\n{e}')
 	# file_remove.append(dir_path.split('\\')[-1])
@@ -368,6 +377,8 @@ def rename_file(file_path:str,file_name:str) -> str:
 		for pat2 in pattern2:
 			for pat3 in pattern3:
 				pattern = pat1 + pat2 + pat3
+				if pattern == '-C-':
+					continue
 				if pattern in file_name:
 					series = '-cd' + pat2 + pat3
 					result = file_name.replace(pattern, series)
@@ -439,7 +450,11 @@ def main_process(nfo:dict,key_list:list):
 	elif actor in tittle:
 		new_name = num_m + ' ' + tittle
 	else:
-		new_name = num_m + ' ' + tittle + actor
+		if not tittle is None:
+			if tittle.endswith(' '):
+				new_name = num_m + ' ' + tittle + actor
+		else:
+			new_name = num_m + ' ' + tittle + ' '+ actor
 
 	tag = movie_c.type
 	if tag:
@@ -498,11 +513,10 @@ def main_process(nfo:dict,key_list:list):
 					logging.warning(f'{fname} {dest_file} exists')
 					continue
 				move(fname, dest_file)
-				logging.info(f'{sname} is moved to {actor} {dfile}')
 
-			logging.info(f'Renamed {sname} to {dfile}')
 			move_file += 1
 			if sname.endswith(('mp4','mkv','avi')):
+				logging.info(f'{actor} {sname} Renamed:{dfile}')
 				print(f'actor:{actor}\n{sname}  rename\n{dfile}\n')
 
 		except Exception as e:
@@ -518,7 +532,6 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 	if not os.path.exists(origin):
 		logging.error(f'dir {origin} not exist')
 		return count
-	miss_folder = os.path.join(origin,'miss_file')
 
 	nfo_list = []
 	movies = []
