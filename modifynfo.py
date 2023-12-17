@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor,as_completed
 
 def process(file_src:str):
 	# delete keywords
-	del_key = ('107','002')
+	del_key = ('107','002','229','230','263','287','298','355','406')
 	file_name = os.path.split(file_src)[-1]
 
 	data = nfoTree(file_src)
@@ -20,7 +20,7 @@ def process(file_src:str):
 			n = len(arg)
 			if tittle.startswith(arg):
 				node_t.text = tittle[n:]
-				print(f'{file_name} {num} del {arg}')
+				print(f'del {arg} {file_name} {num}')
 			if sorttitle.startswith(arg):
 				node_s.text = sorttitle[n:]
 	except Exception as e:

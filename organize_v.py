@@ -241,14 +241,22 @@ def rename_single_dir(file_path: str, str_ig):
 			if any(arg in file for arg in del_keys):
 				try:
 					send2trash(os.path.join(root,file))
-					logging.info(f'{file} deleted')
+					logging.info(f'deleted {file}')
 					if file.endswith(file_end):
-						print(f'{file} deleted')
+						print(f'deleted {file}')
 				except Exception as e:
 					logging.error(f'delete file error\n{e}')
 
 			# rename series movie with cd1 cd2 ...
-			result = rename_file(root,file)
+			count_m = 0
+			for data in files:
+				if data.endswith(file_end):
+					count_m+=1
+			if count_m<2:
+				result = os.path.join(root,file)
+			else:
+				result = rename_file(root,file)
+
 			new_name = os.path.split(result)[-1]
 			file_list.append(new_name)
 			if new_name.endswith('.nfo'):
@@ -443,6 +451,7 @@ def main_process(nfo:dict,key_list:list):
 
 	tittle = norm_name(tittle)
 
+	new_name = num_m+ ' ' + tittle
 	if actor is None:
 		logging.warning(f'{full_name} missing actor')
 		new_name = num_m + ' ' + tittle
@@ -450,9 +459,8 @@ def main_process(nfo:dict,key_list:list):
 	elif actor in tittle:
 		new_name = num_m + ' ' + tittle
 	else:
-		if not tittle is None:
-			if tittle.endswith(' '):
-				new_name = num_m + ' ' + tittle + actor
+		if tittle.endswith(' '):
+			new_name = num_m + ' ' + tittle + actor
 		else:
 			new_name = num_m + ' ' + tittle + ' '+ actor
 
@@ -515,7 +523,7 @@ def main_process(nfo:dict,key_list:list):
 				move(fname, dest_file)
 
 			move_file += 1
-			if sname.endswith(('mp4','mkv','avi')):
+			if sname.endswith(('mp4','mkv','avi','wmv')):
 				logging.info(f'{actor} {sname} Renamed:{dfile}')
 				print(f'actor:{actor}\n{sname}  rename\n{dfile}\n')
 
@@ -558,7 +566,7 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 				temp['fname'] = file_src
 				nfo_list.append(temp)
 	stop = time.time()
-	print(f'getting nfo files ready. \ntime:{stop-begin}')
+	print(f'time:{stop-begin}\n')
 
 	max_worker = 8
 
