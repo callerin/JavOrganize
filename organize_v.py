@@ -559,6 +559,11 @@ def organiz_file(origin: str, destination: str, hardlink: bool, miss:bool):
 					if cds[0] != '1':
 						continue
 
+				name_nfo = os.path.splitext(file)[0]
+				if name_nfo+'.mp4.aria2' in files:
+					print(f'download {file}')
+					continue
+
 				temp = {}
 				file_src = os.path.join(root, file)
 				temp['name'] = file
